@@ -1,4 +1,5 @@
 #!/usr/bin/ruby -Wall
+require_relative 'env'
 require 'Int_mod.rb'
 
 def usage

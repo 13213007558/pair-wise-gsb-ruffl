@@ -1,4 +1,5 @@
 #!/usr/bin/ruby -Wall
+require_relative 'env'
 require 'F2_poly_factor.rb'
 
 do_maximal_proper = false

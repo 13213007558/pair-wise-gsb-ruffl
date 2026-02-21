@@ -1,4 +1,5 @@
 #!/usr/bin/ruby -Wall
+require_relative 'env'
 require 'Int_factor.rb'
 do_slow = false
 if ARGV.length >= 1 and ARGV[0] == "-slow"
