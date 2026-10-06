@@ -178,4 +178,122 @@ class F2_poly_mod_unit_test < Test::Unit::TestCase
 		assert_equal("1bd",
 			F2_poly_mod.units_for_modulus(0x12).to_s)
 	end
+
+	def test_field_isomorphism_rejects_invalid_fields
+		assert_raise(ArgumentError) do
+			F2_poly_mod.field_isomorphism(0xb, 0x13)
+		end
+		assert_raise(ArgumentError) do
+			F2_poly_mod.field_isomorphism(0x9, 0xb)
+		end
+		assert_raise(ArgumentError) do
+			F2_poly_mod.field_isomorphism(0xb, 0x9)
+		end
+		assert_raise(ArgumentError) do
+			F2_poly_mod.field_isomorphism(0x9, 0xf)
+		end
+		assert_raise(ArgumentError) do
+			F2_poly_mod.field_isomorphism(0xf, 0x9)
+		end
+
+		target_x = F2_poly_mod.new(2, 0xd)
+		assert_raise(ArgumentError) do
+			F2_poly_mod.field_isomorphism(0xb, 0xd, target_x)
+		end
+	end
+
+	def test_field_isomorphism_explicit_and_auto_image
+		auto = F2_poly_mod.field_isomorphism(0xb, 0xd)
+		explicit = F2_poly_mod.field_isomorphism(
+			0xb, 0xd, F2_poly_mod.new(5, 0xd))
+
+		assert_equal(F2_poly_mod.new(3, 0xd), auto.image)
+		assert_equal(F2_poly_mod.new(2, 0xb), auto.source_generator)
+		assert_equal(:lowest_canonical_root,
+			auto.selection_basis[:rule])
+		assert_equal(:ascending_bit_encoding,
+			auto.selection_basis[:candidate_order])
+		assert_equal([3, 5, 6], auto.selection_basis[:roots])
+		assert_equal(3, auto.selection_basis[:selected_image])
+		assert_equal(0, auto.selection_basis[:selected_rank])
+		assert_match(/lowest canonical bit encoding/, auto.selection_reason)
+		assert_nil(explicit.selection_basis)
+		assert_equal("explicitly supplied image", explicit.selection_reason)
+
+		assert_equal(F2_poly_mod.new(3, 0xd),
+			auto.map(F2_poly_mod.new(2, 0xb)))
+		assert_equal(F2_poly_mod.new(3, 0xd), auto.map(2))
+		assert_equal(F2_poly_mod.new(5, 0xd),
+			explicit.map(F2_poly_mod.new(2, 0xb)))
+	end
+
+	def test_field_isomorphism_nonuniqueness
+		images = [3, 5, 6].collect do |bits|
+			F2_poly_mod.field_isomorphism(
+				0xb, 0xd, F2_poly_mod.new(bits, 0xd))
+		end
+
+		assert_equal([3, 5, 6], images.collect {|iso| iso.image.residue.bits})
+		assert_equal(3, images.collect {|iso| iso.image.residue.bits}.uniq.length)
+		images.each do |iso|
+			assert_equal(F2_poly_mod.new(0, 0xd),
+				iso.map(F2_poly_mod.new(0xb, 0xb)))
+		end
+	end
+
+	def test_field_isomorphism_small_fields
+		(1..5).each do |degree|
+			irreducibles = irreducible_moduli(degree)
+			irreducibles.each do |source_bits|
+				irreducibles.each do |target_bits|
+					verify_field_isomorphism(source_bits, target_bits)
+				end
+			end
+		end
+	end
+
+	private
+
+	def irreducible_moduli(degree)
+		lower = 1 << degree
+		upper = 1 << (degree + 1)
+		(lower...upper).select do |bits|
+			F2_poly_factor.irr?(F2_poly.new(bits))
+		end
+	end
+
+	def verify_field_isomorphism(source_bits, target_bits)
+		iso = F2_poly_mod.field_isomorphism(source_bits, target_bits)
+		source_elements = F2_poly_mod.elements_for_modulus(source_bits)
+		images = {}
+
+		source_elements.each do |element|
+			image = iso.map(element)
+			assert_equal(target_bits, image.modulus.bits)
+			assert_equal(element, iso.unmap(image))
+			images[element.residue.bits] = image.residue.bits
+		end
+
+		assert_equal((0...(1 << F2_poly.new(source_bits).degree)).to_a,
+			images.values.sort)
+		F2_poly_mod.elements_for_modulus(target_bits).each do |target|
+			assert_equal(target, iso.map(iso.unmap(target)))
+		end
+
+		source_elements.each do |left|
+			source_elements.each do |right|
+				expected_sum = iso.map(left + right).residue.bits
+				expected_product = iso.map(left * right).residue.bits
+				actual_sum = images[left.residue.bits] ^
+					images[right.residue.bits]
+				actual_product = (F2_poly_mod.new(
+					images[left.residue.bits], target_bits) *
+					F2_poly_mod.new(
+						images[right.residue.bits], target_bits)).residue.bits
+
+				assert_equal(expected_sum, actual_sum)
+				assert_equal(expected_product, actual_product)
+			end
+		end
+	end
 end
