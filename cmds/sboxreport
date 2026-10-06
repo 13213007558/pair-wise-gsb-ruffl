@@ -1,0 +1,39 @@
+#!/usr/bin/ruby -Wall
+
+# ================================================================
+# Please see LICENSE.txt in the same directory as this file.
+# Print an offline S-box report (LAT, DDT, ANF, algebraic degree,
+# nonlinearity) for the table given on the command line.
+#
+# Usage:
+#   sboxreport [-m output_bits] s0 s1 s2 ... s{2^n - 1}
+# Example:
+#   sboxreport 3 0 2 1 1 2 0 3
+# ================================================================
+
+require_relative 'env'
+require 'S_box.rb'
+
+def usage
+	$stderr.puts "Usage: #{$0} [-m output_bits] s0 s1 ... s{2^n - 1}"
+	exit 1
+end
+
+num_output_bits = nil
+if ARGV[0] == '-m'
+	usage if ARGV.length < 2
+	num_output_bits = Integer(ARGV[1]) rescue usage
+	ARGV.shift
+	ARGV.shift
+end
+usage if ARGV.empty?
+
+begin
+	table = ARGV.map { |a| Integer(a) }
+	sbox = S_box.new(table, num_output_bits)
+rescue ArgumentError, RuntimeError => e
+	$stderr.puts "#{$0}: #{e}"
+	exit 1
+end
+
+print sbox.report
