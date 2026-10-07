@@ -1,0 +1,46 @@
+#!/usr/bin/ruby -Wall
+
+require_relative 'env'
+require 'json'
+require 'F2_linear_code.rb'
+
+def usage
+	$stderr.puts "Usage: #{$0} [-l length] [-b budget] binary-row [binary-row ...]"
+	$stderr.puts "       #{$0} -l length [-b budget] -m integer-mask [integer-mask ...]"
+	exit 1
+end
+
+length = nil
+budget = F2_linear_code::DEFAULT_BUDGET
+masks = false
+rows = []
+
+until ARGV.empty?
+	argument = ARGV.shift
+	case argument
+	when '-l'
+		usage if ARGV.empty?
+		length = Integer(ARGV.shift)
+	when '-b'
+		usage if ARGV.empty?
+		value = ARGV.shift
+		budget = value == 'none' ? nil : Integer(value)
+	when '-m'
+		masks = true
+	when /^[01]+$/
+		rows << argument
+	else
+		usage
+	end
+end
+
+usage if rows.empty? && !masks
+
+generator = if masks
+	usage if length.nil?
+	rows.map {|row| Integer(row, 2) }
+else
+	rows.map {|row| row.chars.map(&:to_i) }
+end
+
+puts JSON.pretty_generate(F2_linear_code.minimum_distance(generator, length, budget))

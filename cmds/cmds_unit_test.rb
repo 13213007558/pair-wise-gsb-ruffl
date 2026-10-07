@@ -8,6 +8,7 @@
 # Copyright (c) 2011
 # ================================================================
 
+require 'json'
 require 'test/unit'
 
 class Cmds_unit_test < Test::Unit::TestCase
@@ -442,7 +443,35 @@ class Cmds_unit_test < Test::Unit::TestCase
 		o = `ftestprim 0 1`; assert_equal($?, 0);
 			assert_equal("0 imprimitive\n1 PRIMITIVE\n", o)
 		o = `ftestprim 13 15`; assert_equal($?, 0);
-			assert_equal("13 PRIMITIVE\n15 imprimitive\n", o)
+		assert_equal("13 PRIMITIVE\n15 imprimitive\n", o)
+	end
+
+	def test_fcmin
+		o = `fcmin 1001101 0101011 0010111`
+		assert_equal($?, 0)
+		data = JSON.parse(o)
+		assert_equal(7, data["length"])
+		assert_equal(3, data["dimension"])
+		assert_equal(4, data["minimum_distance"])
+		assert_equal(4, data["codeword_weight"])
+
+		o = `fcmin -l 3 -b 0 -m 101 011`
+		assert_equal($?, 0)
+		data = JSON.parse(o)
+		assert_equal(2, data["minimum_distance"])
+
+		o = `fcmin -l 3 000 000`
+		assert_equal($?, 0)
+		data = JSON.parse(o)
+		assert_equal(0, data["minimum_distance"])
+		assert_equal([0, 0, 0], data["codeword"])
+
+		o = `fcmin -l 3 -m 0 0`
+		assert_equal($?, 0)
+		data = JSON.parse(o)
+		assert_equal(3, data["length"])
+		assert_equal(0, data["minimum_distance"])
+		assert_equal([0, 0, 0], data["codeword"])
 	end
 
 end
