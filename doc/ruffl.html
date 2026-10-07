@@ -305,6 +305,23 @@ zdivisors                  ftestirr
 
 <!-- ---------------------------------------------------------------- -->
 <p>
+Binary elliptic curves over GF(2^m):
+<pre>
+EC2_poly_mod.rb        Non-singular curves y^2+xy = x^3+a x^2+b over
+                       F2[x]/&lt;f(x)&gt;: point validation, characteristic-2
+                       addition/doubling, scalar multiplication, and
+                       SEC 1-style compressed-point read/write.
+feclist                Enumerate O and all affine points on a curve.
+fecmul                 Point add/double/negate, scalar multiply, and
+                       compress/decompress from the command line.
+</pre>
+These routines reuse the existing F2_poly / F2_poly_mod field tools,
+and are intended for small-field teaching and back-end algorithm
+verification; they are not constant-time and make no production
+cryptographic-safety claim.
+
+<!-- ---------------------------------------------------------------- -->
+<p>
 <hr>
 <font color="#993333">
 <b>See also</b>
@@ -337,4 +354,3 @@ zdivisors                  ftestirr
 <i> Last updated: 2011-02-16 </i>
 </body>
 </html>
-

@@ -1,0 +1,64 @@
+#!/usr/bin/ruby -Wall
+require_relative 'env'
+require 'EC2_poly_mod.rb'
+
+# Binary-elliptic-curve point operations over GF(2^m).
+#   #{$0} a b f add  x1 y1 x2 y2
+#   #{$0} a b f dbl  x y
+#   #{$0} a b f mul  k  x y
+#   #{$0} a b f neg  x y
+#   #{$0} a b f comp x y
+#   #{$0} a b f dec  <compressed string, e.g. 3:1, 00:1, or O>
+# Affine coordinates are hex field elements; O may stand for a point.
+# Small-field teaching use only: not constant-time, not security-rated.
+
+def usage
+	$stderr.puts "Usage: #{$0} a b f {add|dbl|mul|neg|comp|dec} ..."
+	exit 1
+end
+
+usage if ARGV.length < 4
+a_hex, b_hex, f_hex, op = ARGV.shift, ARGV.shift, ARGV.shift, ARGV.shift
+
+def point_from_args(curve, xs, ys)
+	return curve.infinity if xs == 'O'
+	curve.point(xs, ys)
+end
+
+begin
+	e = EC2_poly_mod_curve.new(a_hex, b_hex, f_hex)
+	rv = case op
+	when 'add'
+		usage if ARGV.length != 4
+		p1 = point_from_args(e, ARGV[0], ARGV[1])
+		p2 = point_from_args(e, ARGV[2], ARGV[3])
+		p1 + p2
+	when 'dbl'
+		usage if ARGV.length != 2
+		e.double(point_from_args(e, ARGV[0], ARGV[1]))
+	when 'mul'
+		usage if ARGV.length != 3
+		p = point_from_args(e, ARGV[1], ARGV[2])
+		Integer(ARGV[0]) * p
+	when 'neg'
+		usage if ARGV.length != 2
+		-point_from_args(e, ARGV[0], ARGV[1])
+	when 'comp'
+		usage if ARGV.length != 2
+		point_from_args(e, ARGV[0], ARGV[1]).compress
+	when 'dec'
+		usage if ARGV.length != 1
+		q = e.decompress(ARGV[0])
+		if q.nil?
+			$stderr.puts "No point with that compressed x-coordinate on this curve."
+			exit 1
+		end
+		q.to_s
+	else
+		usage
+	end
+	puts rv
+rescue RuntimeError, ArgumentError => err
+	$stderr.puts err.message
+	exit 1
+end

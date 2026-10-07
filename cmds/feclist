@@ -1,0 +1,24 @@
+#!/usr/bin/ruby -Wall
+require_relative 'env'
+require 'EC2_poly_mod.rb'
+
+# Enumerates O and all affine points of the non-singular binary
+# elliptic curve y^2+xy = x^3+a x^2+b over GF(2^m) defined by the
+# irreducible polynomial f.  Small-field teaching use only.
+if ARGV.length != 3
+	$stderr.puts "Usage: #{$0} {a in hex} {b in hex} {f in hex (irreducible over F2)}"
+	exit 1
+end
+
+begin
+	e = EC2_poly_mod_curve.new(ARGV[0], ARGV[1], ARGV[2])
+rescue RuntimeError => err
+	$stderr.puts err.message
+	exit 1
+end
+
+points = e.points
+puts e.to_s
+points.each {|p| puts p.to_s}
+puts "O"
+puts "# #{points.length + 1} points (including O)"
