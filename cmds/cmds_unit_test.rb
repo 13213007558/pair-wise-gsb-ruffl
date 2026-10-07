@@ -445,4 +445,22 @@ class Cmds_unit_test < Test::Unit::TestCase
 			assert_equal("13 PRIMITIVE\n15 imprimitive\n", o)
 	end
 
+	def test_bmin
+		o = `bmin`; assert_not_equal($?, 0)
+		o = `bmin 10 1`; assert_not_equal($?, 0)
+		o = `bmin 0111 0110 0111 0000`; assert_equal($?, 0)
+		assert_equal(
+			"status: exact\n" \
+			"rank: 2\n" \
+			"minimum_distance: 1\n" \
+			"codeword: 0001\n" \
+			"information_coefficients: 1100\n",
+			o)
+		o = `bmin -b 5 0111 0110 0111 0000`; assert_equal($?, 0)
+		assert_match(/lower_bound: 1\n/, o)
+		assert_match(/upper_bound: 2\n/, o)
+		o = `bmin 0000 0000`; assert_equal($?, 0)
+		assert_match(/minimum_distance: 0\n/, o)
+	end
+
 end

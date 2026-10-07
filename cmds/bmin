@@ -1,0 +1,52 @@
+#!/usr/bin/ruby -Wall
+require_relative 'env'
+require 'Binary_code.rb'
+
+budget = Binary_code::DEFAULT_BUDGET
+rows = ARGV.dup
+
+if rows.first == "-b"
+	if rows.length < 3
+		$stderr.puts "Usage: #{$0} [-b budget|exact] binary_row [binary_row ...]"
+		exit 1
+	end
+	rows.shift
+	value = rows.shift
+	budget = value == "exact" ? nil : Integer(value)
+end
+
+if rows.empty? || rows.any? { |row| row.empty? || row.count("01") != row.length }
+	$stderr.puts "Usage: #{$0} [-b budget|exact] binary_row [binary_row ...]"
+	$stderr.puts "Example: #{$0} 111000 000111"
+	exit 1
+end
+
+length = rows.first.length
+unless rows.all? { |row| row.length == length }
+	$stderr.puts "All generator rows must have the same length."
+	exit 1
+end
+
+generator = Bit_matrix.new(rows.length, length)
+rows.each_with_index do |text, row_index|
+	text.each_char.with_index do |char, column_index|
+		generator[row_index][length - 1 - column_index] = char.to_i
+	end
+end
+
+result = Binary_code.minimum_distance(generator, budget)
+coefficient_text = result.information_coefficients.bits
+	.to_s(2)
+	.rjust(rows.length, "0")
+	.reverse
+
+puts "status: #{result.status}"
+puts "rank: #{result.rank}"
+if result.exact?
+	puts "minimum_distance: #{result.minimum_distance}"
+else
+	puts "lower_bound: #{result.lower_bound}"
+	puts "upper_bound: #{result.upper_bound}"
+end
+puts "codeword: #{result.codeword.to_s}"
+puts "information_coefficients: #{coefficient_text}"
